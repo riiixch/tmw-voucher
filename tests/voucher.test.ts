@@ -54,19 +54,16 @@ describe('TmwVoucher Class - Core Redemption & Normalization Flows', () => {
     await expect(client.redeem(dummyVoucher)).rejects.toThrow(TmwValidationError);
   });
 
-  it('ควรโยน TmwValidationError หากเบอร์โทรศัพท์น้อยกว่า 10 หลัก (เช่น 9 หลัก)', async () => {
-    const client = new TmwVoucher({ mobile: '081234567' });
-    await expect(client.redeem(dummyVoucher)).rejects.toThrow(TmwValidationError);
+  it('ควรโยน TmwValidationError ล่วงหน้าใน Constructor หากเบอร์โทรศัพท์น้อยกว่า 10 หลัก (เช่น 9 หลัก)', () => {
+    expect(() => new TmwVoucher({ mobile: '081234567' })).toThrow(TmwValidationError);
   });
 
-  it('ควรโยน TmwValidationError หากเบอร์โทรศัพท์มากกว่า 10 หลัก (เช่น 11 หลัก)', async () => {
-    const client = new TmwVoucher({ mobile: '08123456789' });
-    await expect(client.redeem(dummyVoucher)).rejects.toThrow(TmwValidationError);
+  it('ควรโยน TmwValidationError ล่วงหน้าใน Constructor หากเบอร์โทรศัพท์มากกว่า 10 หลัก (เช่น 11 หลัก)', () => {
+    expect(() => new TmwVoucher({ mobile: '08123456789' })).toThrow(TmwValidationError);
   });
 
-  it('ควรโยน TmwValidationError หากเบอร์โทรศัพท์มีตัวหนังสือปะปน', async () => {
-    const client = new TmwVoucher({ mobile: '0812345abc' });
-    await expect(client.redeem(dummyVoucher)).rejects.toThrow(TmwValidationError);
+  it('ควรโยน TmwValidationError ล่วงหน้าใน Constructor หากเบอร์โทรศัพท์มีตัวหนังสือปะปน', () => {
+    expect(() => new TmwVoucher({ mobile: '0812345abc' })).toThrow(TmwValidationError);
   });
 
   it('Refactor: ควรทำการแปลงเบอร์โทรสากล (+66 หรือ 66) ให้เป็น 0 อัตโนมัติและผ่านการยืนยันตัวตนได้', async () => {
@@ -191,5 +188,48 @@ describe('Functional Wrapper - redeemVoucher', () => {
 
   it('ควรโยน TmwValidationError หากไม่ได้ส่งเบอร์โทรศัพท์มาใน Functional Wrapper', async () => {
     await expect(redeemVoucher('', '5a1b2c3d4e5f6g7h8i9j0k')).rejects.toThrow(TmwValidationError);
+  });
+});
+
+describe('TmwVoucher Resilience - Automatic Retry & Backoff Flows', () => {
+  const dummyMobile = '0812345678';
+  const dummyVoucher = '5a1b2c3d4e5f6g7h8i9j0k';
+
+  it('ควรพยายามส่งคำขอซ้ำ (Retry) เมื่อพบความล้มเหลวเครือข่าย และสำเร็จในรอบถัดไป', async () => {
+    let callCount = 0;
+    const mockRequester = vi.fn().mockImplementation(async (url) => {
+      callCount++;
+      if (url.includes('/configuration')) {
+        return { status: { code: 'SUCCESS' } };
+      }
+      if (url.includes('/redeem')) {
+        if (callCount < 3) {
+          // จำลองความล้มเหลวเครือข่าย 2 รอบแรก (รอบ 1 เช็ค config, รอบ 2 ลองเคลมแล้วพัง)
+          throw new Error('Transient network timeout');
+        }
+        return {
+          status: { code: 'SUCCESS' },
+          data: { my_ticket: { amount_baht: '35.00' } }
+        };
+      }
+      return null;
+    });
+
+    const client = new TmwVoucher({
+      mobile: dummyMobile,
+      requester: mockRequester,
+      retryOptions: {
+        retries: 2,
+        minTimeout: 10, // หน่วงเวลาน้อยๆ ในการเทสเพื่อความรวดเร็ว
+        factor: 1.5
+      }
+    });
+
+    const result = await client.redeem(dummyVoucher);
+    
+    expect(result.success).toBe(true);
+    expect(result.amountBaht).toBe(35);
+    // ทั้งหมดต้องถูกเรียก: รอบแรก config (สำเร็จ), รอบสอง redeem (พังรอบแรก), รอบสาม redeem (สำเร็จหลังจาก retry)
+    expect(mockRequester).toHaveBeenCalledTimes(3);
   });
 });

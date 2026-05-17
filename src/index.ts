@@ -1,4 +1,4 @@
-import { TmwVoucherConfig, RedeemResult } from './types.js';
+import { TmwVoucherConfig, RedeemResult, RetryOptions } from './types.js';
 import { extractVoucherCode } from './utils.js';
 import { defaultCurlRequester } from './requester.js';
 import {
@@ -21,15 +21,47 @@ export class TmwVoucher {
   private mobile?: string;
   private timeout: number;
   private requester: typeof defaultCurlRequester;
+  private retryOptions?: RetryOptions;
 
   /**
    * สร้างอินสแตนซ์ของระบบ TrueMoney Voucher Redeemer
    * @param config การตั้งค่าเริ่มต้นสำหรับการเคลมซองอั่งเปา
    */
   constructor(config: TmwVoucherConfig = {}) {
-    this.mobile = config.mobile;
     this.timeout = config.timeout ?? 15000;
     this.requester = config.requester ?? defaultCurlRequester;
+    this.retryOptions = config.retryOptions;
+
+    // Early Constructor Validation & Normalization
+    if (config.mobile) {
+      this.mobile = this.validateMobile(config.mobile);
+    }
+  }
+
+  /**
+   * ตรวจสอบรูปแบบและแปลงเบอร์โทรศัพท์ให้เป็นฟอร์แมตมาตรฐานท้องถิ่น (08XXXXXXXX)
+   * @param mobile เบอร์โทรศัพท์ขาเข้า
+   * @returns เบอร์โทรศัพท์ที่ได้รับการทำความสะอาดและตรวจสอบแล้วจำนวน 10 หลัก
+   * @throws {TmwValidationError} หากเบอร์โทรศัพท์ไม่ถูกต้องหรือยาวไม่ครบตามกำหนด
+   */
+  private validateMobile(mobile: string): string {
+    if (!mobile || typeof mobile !== 'string' || mobile.trim() === '') {
+      throw new TmwValidationError('กรุณาระบุเบอร์โทรศัพท์ผู้รับเงิน (mobile)');
+    }
+    
+    // ขจัดช่องว่าง, ขีดแดช และเครื่องหมายบวกออก
+    let cleanMobile = mobile.replace(/[-\s+]/g, '');
+    
+    // แปลง 66 หรือ +66 นำหน้าให้กลายเป็น 0 นำหน้า
+    if (cleanMobile.startsWith('66')) {
+      cleanMobile = '0' + cleanMobile.slice(2);
+    }
+
+    if (!/^[0-9]{10}$/.test(cleanMobile)) {
+      throw new TmwValidationError(`รูปแบบเบอร์โทรศัพท์ผู้รับเงินไม่ถูกต้อง (${mobile}) เบอร์โทรศัพท์ต้องประกอบด้วยตัวเลข 10 หลักถ้วนเท่านั้น`);
+    }
+
+    return cleanMobile;
   }
 
   /**
@@ -39,15 +71,27 @@ export class TmwVoucher {
    */
   async checkMaintenance(): Promise<boolean> {
     let response: any;
-    try {
-      response = await this.requester('https://gift.truemoney.com/campaign/vouchers/configuration', {
-        method: 'GET',
-        timeout: this.timeout
-      });
-    } catch (err: any) {
-      // Refactor: หลีกเลี่ยงการครอบซ้ำหากเป็น Error ของห้องสมุดอยู่แล้ว
-      if (err instanceof TmwVoucherError) throw err;
-      throw new TmwNetworkError(`เช็คสถานะการปรับปรุงระบบ TrueMoney ล้มเหลว (เกิดข้อผิดพลาดในการเชื่อมต่อ): ${err.message}`);
+    const { retries = 0, minTimeout = 1000, factor = 2 } = this.retryOptions || {};
+    let attempt = 0;
+
+    while (true) {
+      try {
+        response = await this.requester('https://gift.truemoney.com/campaign/vouchers/configuration', {
+          method: 'GET',
+          timeout: this.timeout,
+          retryOptions: this.retryOptions
+        });
+        break; // สำเร็จแล้วออกจากลูป
+      } catch (err: any) {
+        if (attempt < retries && !(err instanceof TmwVoucherError)) {
+          attempt++;
+          const delay = minTimeout * Math.pow(factor, attempt - 1);
+          await new Promise((resolve) => setTimeout(resolve, delay));
+          continue;
+        }
+        if (err instanceof TmwVoucherError) throw err;
+        throw new TmwNetworkError(`เช็คสถานะการปรับปรุงระบบ TrueMoney ล้มเหลว (เกิดข้อผิดพลาดในการเชื่อมต่อ): ${err.message}`);
+      }
     }
 
     if (!response) {
@@ -80,18 +124,7 @@ export class TmwVoucher {
       throw new TmwValidationError('กรุณาระบุเบอร์โทรศัพท์ผู้รับเงิน (mobile) ทั้งนี้ต้องระบุใน Constructor หรือฟังก์ชัน redeem');
     }
 
-    // Refactor & Clean Code: เพิ่มกระบวนการแปลงเบอร์โทรศัพท์ฟอร์แมตสากล (เช่น +66 หรือ 66 ให้เป็น 0 นำหน้าโดยอัตโนมัติ)
-    // ขจัดช่องว่าง, ขีดแดช และเครื่องหมายบวกออก
-    let cleanMobile = targetMobile.replace(/[-\s+]/g, '');
-    
-    // แปลง 66 หรือ +66 นำหน้าให้กลายเป็น 0 นำหน้า
-    if (cleanMobile.startsWith('66')) {
-      cleanMobile = '0' + cleanMobile.slice(2);
-    }
-
-    if (!/^[0-9]{10}$/.test(cleanMobile)) {
-      throw new TmwValidationError(`รูปแบบเบอร์โทรศัพท์ผู้รับเงินไม่ถูกต้อง (${targetMobile}) เบอร์โทรศัพท์ต้องประกอบด้วยตัวเลข 10 หลักถ้วนเท่านั้น`);
-    }
+    const cleanMobile = this.validateMobile(targetMobile);
 
     // 2. ตรวจสอบรูปแบบโค้ดซองอั่งเปา
     let voucherCode: string | null = null;
@@ -120,25 +153,38 @@ export class TmwVoucher {
 
     // 4. ดำเนินการส่งคำขอรับเงินจากระบบ TrueMoney API
     let response: any;
-    try {
-      response = await this.requester(
-        `https://gift.truemoney.com/campaign/vouchers/${voucherCode}/redeem`,
-        {
-          method: 'POST',
-          body: {
-            mobile: cleanMobile,
-            voucher_hash: voucherCode
-          },
-          headers: {
-            'Origin': 'https://gift.truemoney.com',
-            'Referer': `https://gift.truemoney.com/campaign/?v=${voucherCode}`
-          },
-          timeout: this.timeout
+    const { retries = 0, minTimeout = 1000, factor = 2 } = this.retryOptions || {};
+    let attempt = 0;
+
+    while (true) {
+      try {
+        response = await this.requester(
+          `https://gift.truemoney.com/campaign/vouchers/${voucherCode}/redeem`,
+          {
+            method: 'POST',
+            body: {
+              mobile: cleanMobile,
+              voucher_hash: voucherCode
+            },
+            headers: {
+              'Origin': 'https://gift.truemoney.com',
+              'Referer': `https://gift.truemoney.com/campaign/?v=${voucherCode}`
+            },
+            timeout: this.timeout,
+            retryOptions: this.retryOptions
+          }
+        );
+        break; // สำเร็จแล้วออกจากลูป
+      } catch (err: any) {
+        if (attempt < retries && !(err instanceof TmwVoucherError)) {
+          attempt++;
+          const delay = minTimeout * Math.pow(factor, attempt - 1);
+          await new Promise((resolve) => setTimeout(resolve, delay));
+          continue;
         }
-      );
-    } catch (err: any) {
-      if (err instanceof TmwVoucherError) throw err;
-      throw new TmwNetworkError(`การดำเนินการส่งข้อมูลเคลมซองล้มเหลว (เกิดปัญหาฝั่งเครือข่าย/curl): ${err.message}`);
+        if (err instanceof TmwVoucherError) throw err;
+        throw new TmwNetworkError(`การดำเนินการส่งข้อมูลเคลมซองล้มเหลว (เกิดปัญหาฝั่งเครือข่าย/curl): ${err.message}`);
+      }
     }
 
     // 5. วิเคราะห์ข้อมูลตอบกลับอย่างรอบคอบและปลอดภัยสูง

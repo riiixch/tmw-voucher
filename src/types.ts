@@ -1,8 +1,26 @@
+export interface RetryOptions {
+  /**
+   * จำนวนครั้งสูงสุดที่จะพยายามส่งคำขอซ้ำเมื่อเกิดการเชื่อมต่อล้มเหลว (ค่าเริ่มต้น: 0 คือไม่ยิงซ้ำ)
+   */
+  retries?: number;
+
+  /**
+   * เวลารอบแรกที่จะรอคอยก่อนเริ่มการยิงคำขอซ้ำรอบสอง ในหน่วยมิลลิวินาที (ค่าเริ่มต้น: 1000ms)
+   */
+  minTimeout?: number;
+
+  /**
+   * ตัวคูณทวีคูณสำหรับคำนวณเวลาการหน่วงรอบถัดไป (Exponential factor, ค่าเริ่มต้น: 2)
+   */
+  factor?: number;
+}
+
 export interface RequestOptions {
   method?: 'GET' | 'POST';
   body?: Record<string, any>;
   headers?: Record<string, string>;
   timeout?: number;
+  retryOptions?: RetryOptions;
 }
 
 export type RequesterFunction = (url: string, options?: RequestOptions) => Promise<any>;
@@ -23,6 +41,11 @@ export interface TmwVoucherConfig {
    * หากไม่ได้ระบุ จะใช้ curl.exe (บน Windows) หรือ curl (บน Unix) ดีฟอลต์เพื่อ bypass Cloudflare
    */
   requester?: RequesterFunction;
+
+  /**
+   * การตั้งค่าลองใหม่อัตโนมัติเมื่อเกิดการเชื่อมต่อหรือเน็ตเวิร์กขัดข้อง (Automatic Retry with Exponential Backoff)
+   */
+  retryOptions?: RetryOptions;
 }
 
 export interface RedeemResult {
