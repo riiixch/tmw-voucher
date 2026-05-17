@@ -1,12 +1,41 @@
+# Dependencies
 node_modules/
+/package-lock.json
+/yarn.lock
+/pnpm-lock.yaml
+
+# Build output
 dist/
-.env
-.DS_Store
+lib/
+
+# Testing
+coverage/
+.nyc_output/
+.vitest/
+
+# Logs
+logs
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-.idea/
+pnpm-debug.log*
+
+# IDEs and Editors
 .vscode/
-.vitest/
-coverage/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Operating System
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Temporary files
+.tmp/
+tmp/

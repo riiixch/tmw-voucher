@@ -17,8 +17,9 @@
   ],
   "scripts": {
     "build": "tsup",
-    "dev": "tsup --watch",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "prepublishOnly": "npm run build"
   },
   "keywords": [
     "truemoney",
@@ -29,7 +30,15 @@
     "truemoney-gift",
     "cloudflare-bypass"
   ],
-  "author": "riiixch",
+  "author": "RIIIXCH",
+  "homepage": "https://github.com/riiixch/tmw-voucher#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/riiixch/tmw-voucher.git"
+  },
+  "bugs": {
+    "url": "https://github.com/riiixch/tmw-voucher/issues"
+  },
   "license": "ISC",
   "type": "module",
   "devDependencies": {
