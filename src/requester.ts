@@ -10,7 +10,7 @@ const execFileAsync = promisify(execFile);
 export const defaultCurlRequester: RequesterFunction = async (url, options = {}) => {
   const isWindows = process.platform === 'win32';
   const curlCmd = isWindows ? 'curl.exe' : 'curl';
-  
+
   // แปลงมิลลิวินาทีเป็นวินาที (ปัดเศษขึ้น)
   const timeoutSec = Math.ceil((options.timeout || 15000) / 1000);
 
@@ -50,7 +50,7 @@ export const defaultCurlRequester: RequesterFunction = async (url, options = {})
 
   try {
     const { stdout } = await execFileAsync(curlCmd, args);
-    
+
     // Refactor: ตรวจสอบและทำความสะอาดผลลัพธ์จากภายนอก
     const trimmedStdout = (stdout || '').trim();
     if (!trimmedStdout) {
@@ -69,10 +69,10 @@ export const defaultCurlRequester: RequesterFunction = async (url, options = {})
       if (trimmedErrStdout) {
         try {
           return JSON.parse(trimmedErrStdout);
-        } catch {}
+        } catch { }
       }
     }
-    
+
     // โยนข้อผิดพลาดเดิมหรือความผิดพลาดที่เกิดขึ้น
     throw new Error(err.message || 'การยิงคำขอ curl เกิดข้อผิดพลาดในการเชื่อมต่อ');
   }

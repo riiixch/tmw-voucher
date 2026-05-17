@@ -41,7 +41,7 @@ export function extractVoucherCode(urlOrCode: string): string | null {
   if (code) {
     // ตัดสัญลักษณ์พิเศษ เช่น เครื่องหมายเฉลียง / หรือเครื่องหมายแฮช # ที่อาจพ่วงติดมาระหว่างแกะข้อมูล
     const cleanedCode = code.trim().replace(/[^a-zA-Z0-9]/g, '');
-    
+
     // ตรวจสอบความถูกต้องของขนาดที่ผ่านการขัดเกลาแล้ว
     if (cleanedCode.length >= 10 && cleanedCode.length <= 48) {
       return cleanedCode;

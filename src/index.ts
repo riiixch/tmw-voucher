@@ -48,10 +48,10 @@ export class TmwVoucher {
     if (!mobile || typeof mobile !== 'string' || mobile.trim() === '') {
       throw new TmwValidationError('กรุณาระบุเบอร์โทรศัพท์ผู้รับเงิน (mobile)');
     }
-    
+
     // ขจัดช่องว่าง, ขีดแดช และเครื่องหมายบวกออก
     let cleanMobile = mobile.replace(/[-\s+]/g, '');
-    
+
     // แปลง 66 หรือ +66 นำหน้าให้กลายเป็น 0 นำหน้า
     if (cleanMobile.startsWith('66')) {
       cleanMobile = '0' + cleanMobile.slice(2);
@@ -249,7 +249,7 @@ export async function redeemVoucher(
   if (!mobileNumber) {
     throw new TmwValidationError('กรุณาระบุเบอร์โทรศัพท์ผู้รับเงิน (mobileNumber)');
   }
-  
+
   const client = new TmwVoucher({
     mobile: mobileNumber,
     ...options

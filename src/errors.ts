@@ -5,7 +5,7 @@ export class TmwVoucherError extends Error {
   constructor(message: string) {
     super(message);
     this.name = this.constructor.name;
-    
+
     // กู้คืน Prototype chain เพื่อช่วยในการระบุประเภทของ Error (instanceof) ในระบบ ESM/CJS
     Object.setPrototypeOf(this, new.target.prototype);
   }
