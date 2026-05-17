@@ -1,0 +1,41 @@
+{
+  "name": "@riiixch/tmw-voucher",
+  "version": "1.0.0",
+  "description": "TrueMoney Wallet automatic voucher redeemer library with Cloudflare TLS fingerprint bypass",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest run"
+  },
+  "keywords": [
+    "truemoney",
+    "wallet",
+    "voucher",
+    "redeemer",
+    "truemoney-voucher",
+    "truemoney-gift",
+    "cloudflare-bypass"
+  ],
+  "author": "riiixch",
+  "license": "ISC",
+  "type": "module",
+  "devDependencies": {
+    "@types/node": "^20.12.12",
+    "tsup": "^8.0.2",
+    "typescript": "^5.4.5",
+    "vitest": "^1.6.0"
+  }
+}
