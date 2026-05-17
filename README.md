@@ -1,6 +1,7 @@
 # 🇹🇭 @riiixch/tmw-voucher 🧧
 
 [![npm version](https://img.shields.io/npm/v/%40riiixch%2Ftmw-voucher.svg)](https://www.npmjs.com/package/@riiixch/tmw-voucher)
+[![Build Status](https://github.com/riiixch/tmw-voucher/actions/workflows/ci.yml/badge.svg)](https://github.com/riiixch/tmw-voucher/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/License-ISC-green.svg)](LICENSE)
 [![Type Safety](https://img.shields.io/badge/TypeScript-100%25-blue.svg)](https://www.typescriptlang.org)
 [![Zero Dependencies](https://img.shields.io/badge/dependencies-zero-brightgreen.svg)](#)
