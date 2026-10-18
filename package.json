@@ -43,7 +43,7 @@
   "type": "module",
   "devDependencies": {
     "@types/node": "^26.0.0",
-    "tsup": "^8.0.2",
+    "tsup": "^9.0.0",
     "typescript": "^6.0.3",
     "vitest": "^4.1.6"
   }
