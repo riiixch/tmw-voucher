@@ -16,7 +16,7 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsup",
+    "build": "tsup && tsc --emitDeclarationOnly",
     "test": "vitest run",
     "test:watch": "vitest",
     "prepublishOnly": "npm run build"
@@ -43,8 +43,8 @@
   "type": "module",
   "devDependencies": {
     "@types/node": "^26.0.0",
-    "tsup": "^8.0.2",
-    "typescript": "^6.0.3",
-    "vitest": "^4.1.6"
+    "tsup": "^9.0.0",
+    "typescript": "^7.0.2",
+    "vitest": "^5.1.0"
   }
 }
