@@ -17,6 +17,8 @@ export const defaultCurlRequester: RequesterFunction = async (url, options = {})
   const args = [
     '-s',                   // เงียบ (Silent mode)
     '-L',                   // ติดตาม Redirect
+    '--proto', '=http,https', // บังคับเฉพาะ HTTP และ HTTPS เท่านั้น (SSRF Guard)
+    '--connect-timeout', '10', // กำหนดเวลาเชื่อมต่อสูงสุด 10 วินาที
     '--max-time', String(timeoutSec), // หมดเวลาสูงสุด
   ];
 

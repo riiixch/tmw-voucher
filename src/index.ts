@@ -13,6 +13,7 @@ import {
 export * from './types.js';
 export * from './errors.js';
 export { extractVoucherCode } from './utils.js';
+export { defaultCurlRequester } from './requester.js';
 
 /**
  * คลาสหลักสำหรับการจัดการและแลกรับซองอั่งเปา TrueMoney Wallet
@@ -22,6 +23,7 @@ export class TmwVoucher {
   private timeout: number;
   private requester: typeof defaultCurlRequester;
   private retryOptions?: RetryOptions;
+  private skipMaintenanceCheck: boolean;
 
   /**
    * สร้างอินสแตนซ์ของระบบ TrueMoney Voucher Redeemer
@@ -31,6 +33,7 @@ export class TmwVoucher {
     this.timeout = config.timeout ?? 15000;
     this.requester = config.requester ?? defaultCurlRequester;
     this.retryOptions = config.retryOptions;
+    this.skipMaintenanceCheck = config.skipMaintenanceCheck ?? false;
 
     // Early Constructor Validation & Normalization
     if (config.mobile) {
@@ -138,17 +141,19 @@ export class TmwVoucher {
       throw new TmwInvalidUrlError('รูปแบบลิงก์หรือรหัสซองอั่งเปาไม่ถูกต้อง หรือส่งข้อมูลเปล่าเข้ามา');
     }
 
-    // 3. ตรวจสอบการปิดปรับปรุงระบบ
-    let isMaintenance = false;
-    try {
-      isMaintenance = await this.checkMaintenance();
-    } catch (err: any) {
-      if (err instanceof TmwVoucherError) throw err;
-      throw new TmwNetworkError(`เช็คสถานะการเปิดปิดของระบบอั่งเปาล้มเหลวก่อนเริ่มเคลมซอง: ${err.message}`);
-    }
+    // 3. ตรวจสอบการปิดปรับปรุงระบบ (สามารถข้ามได้เพื่อเพิ่มความเร็ว)
+    if (!this.skipMaintenanceCheck) {
+      let isMaintenance = false;
+      try {
+        isMaintenance = await this.checkMaintenance();
+      } catch (err: any) {
+        if (err instanceof TmwVoucherError) throw err;
+        throw new TmwNetworkError(`เช็คสถานะการเปิดปิดของระบบอั่งเปาล้มเหลวก่อนเริ่มเคลมซอง: ${err.message}`);
+      }
 
-    if (isMaintenance) {
-      throw new TmwMaintenanceError('ระบบแคมเปญ TrueMoney ซองอั่งเปา ปิดปรับปรุงอยู่ชั่วคราว');
+      if (isMaintenance) {
+        throw new TmwMaintenanceError('ระบบแคมเปญ TrueMoney ซองอั่งเปา ปิดปรับปรุงอยู่ชั่วคราว');
+      }
     }
 
     // 4. ดำเนินการส่งคำขอรับเงินจากระบบ TrueMoney API
@@ -200,7 +205,7 @@ export class TmwVoucher {
     try {
       if (status.code === 'SUCCESS') {
         const amountBahtStr = response.data?.my_ticket?.amount_baht;
-        if (!amountBahtStr) {
+        if (amountBahtStr === undefined || amountBahtStr === null || amountBahtStr === '') {
           throw new TmwNetworkError('ผลตอบกลับแจ้งสถานะ SUCCESS แต่ไม่สามารถระบุฟิลด์จำนวนเงินที่รับได้ (data.my_ticket.amount_baht ขาดหายไป)');
         }
 

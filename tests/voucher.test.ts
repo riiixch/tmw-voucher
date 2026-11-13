@@ -3,6 +3,7 @@ import {
   TmwVoucher, 
   redeemVoucher, 
   extractVoucherCode, 
+  defaultCurlRequester,
   TmwInvalidUrlError, 
   TmwValidationError,
   TmwMaintenanceError, 
@@ -231,5 +232,62 @@ describe('TmwVoucher Resilience - Automatic Retry & Backoff Flows', () => {
     expect(result.amountBaht).toBe(35);
     // ทั้งหมดต้องถูกเรียก: รอบแรก config (สำเร็จ), รอบสอง redeem (พังรอบแรก), รอบสาม redeem (สำเร็จหลังจาก retry)
     expect(mockRequester).toHaveBeenCalledTimes(3);
+  });
+});
+
+describe('TmwVoucher Optimization & Exports (v1.1.0 Features)', () => {
+  const dummyMobile = '0812345678';
+  const dummyVoucher = '5a1b2c3d4e5f6g7h8i9j0k';
+
+  it('ควรส่งออก defaultCurlRequester อย่างถูกต้อง', () => {
+    expect(typeof defaultCurlRequester).toBe('function');
+  });
+
+  it('ควรข้ามการยิงตรวจสอบ /configuration เมื่อกำหนด skipMaintenanceCheck เป็น true', async () => {
+    const mockRequester = vi.fn().mockImplementation(async (url) => {
+      if (url.includes('/redeem')) {
+        return {
+          status: { code: 'SUCCESS' },
+          data: { my_ticket: { amount_baht: '25.00' } }
+        };
+      }
+      return null;
+    });
+
+    const client = new TmwVoucher({
+      mobile: dummyMobile,
+      requester: mockRequester,
+      skipMaintenanceCheck: true
+    });
+
+    const result = await client.redeem(dummyVoucher);
+    expect(result.success).toBe(true);
+    expect(result.amountBaht).toBe(25.00);
+    expect(result.amountSatang).toBe(2500);
+    // ต้องถูกเรียกเพียง 1 ครั้งเท่านั้น (เฉพาะ /redeem)
+    expect(mockRequester).toHaveBeenCalledTimes(1);
+    expect(mockRequester).toHaveBeenCalledWith(
+      expect.stringContaining('/redeem'),
+      expect.anything()
+    );
+  });
+
+  it('ควรแปลงยอดเงินเป็น 0.00 บาทได้ถูกต้องหาก API คืนค่า 0.00 โดยไม่โยน Error', async () => {
+    const mockRequester = vi.fn().mockImplementation(async (url) => {
+      if (url.includes('/configuration')) return { status: { code: 'SUCCESS' } };
+      if (url.includes('/redeem')) {
+        return {
+          status: { code: 'SUCCESS' },
+          data: { my_ticket: { amount_baht: '0.00' } }
+        };
+      }
+      return null;
+    });
+
+    const client = new TmwVoucher({ mobile: dummyMobile, requester: mockRequester });
+    const result = await client.redeem(dummyVoucher);
+    expect(result.success).toBe(true);
+    expect(result.amountBaht).toBe(0);
+    expect(result.amountSatang).toBe(0);
   });
 });

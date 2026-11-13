@@ -256,6 +256,7 @@ const client = new TmwVoucher(config?: TmwVoucherConfig);
 | `timeout` | `number` | No | `15000` | ระยะเวลาจำกัดการโอนถ่ายข้อมูลเครือข่ายสูงสุดในหน่วยมิลลิวินาที (15 วินาที) |
 | `requester` | `RequesterFunction` | No | `defaultCurlRequester` | ฟังก์ชันส่งคำขอข้อมูล HTTP (ฉีดเข้ามาแทนที่ได้เพื่อเปลี่ยนระบบข้าม curl) |
 | `retryOptions` | `RetryOptions` | No | - | อ็อปชันการพยายามส่งคำขอเครือข่ายใหม่อัตโนมัติเมื่อพบปัญหาสัญญาณขัดข้อง (Automatic Retry) |
+| `skipMaintenanceCheck` | `boolean` | No | `false` | ข้ามการยิงตรวจสอบ `/configuration` ก่อนเคลม เพื่อลด latency ลง ~50% สำหรับเคสที่ต้องการความเร็วสูงสุด |
 
 ---
 

@@ -46,6 +46,13 @@ export interface TmwVoucherConfig {
    * การตั้งค่าลองใหม่อัตโนมัติเมื่อเกิดการเชื่อมต่อหรือเน็ตเวิร์กขัดข้อง (Automatic Retry with Exponential Backoff)
    */
   retryOptions?: RetryOptions;
+
+  /**
+   * ข้ามการยิงตรวจสอบสถานะปิดปรับปรุง (/configuration) ก่อนเคลมซอง
+   * เหมาะสำหรับกรณีที่ต้องการความเร็วสูงสุด (ลดจำนวน HTTP request จาก 2 เหลือ 1 ครั้ง)
+   * ค่าเริ่มต้น: false (ตรวจสอบเสมอ)
+   */
+  skipMaintenanceCheck?: boolean;
 }
 
 export interface RedeemResult {
