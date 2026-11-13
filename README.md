@@ -1,159 +1,183 @@
 # 🇹🇭 @riiixch/tmw-voucher 🧧
 
 [![npm version](https://img.shields.io/npm/v/%40riiixch%2Ftmw-voucher.svg)](https://www.npmjs.com/package/@riiixch/tmw-voucher)
+[![Node.js Version](https://img.shields.io/badge/node-%3E%3D20.0.0-brightgreen.svg)](https://nodejs.org)
+[![TypeScript](https://img.shields.io/badge/TypeScript-7.0%2B-blue.svg)](https://www.typescriptlang.org)
 [![Build Status](https://github.com/riiixch/tmw-voucher/actions/workflows/ci.yml/badge.svg)](https://github.com/riiixch/tmw-voucher/actions/workflows/ci.yml)
+[![Tested with Vitest](https://img.shields.io/badge/tested_with-vitest-yellow.svg)](https://vitest.dev)
 [![License](https://img.shields.io/badge/License-ISC-green.svg)](LICENSE)
-[![Type Safety](https://img.shields.io/badge/TypeScript-100%25-blue.svg)](https://www.typescriptlang.org)
 [![Zero Dependencies](https://img.shields.io/badge/dependencies-zero-brightgreen.svg)](#)
 [![Developer](https://img.shields.io/badge/Developer-RIIIXCH-orange.svg)](https://github.com/riiixch)
 
-> **เครื่องมือและไลบรารีภาษา JavaScript/TypeScript คุณภาพสูงสำหรับกดรับซองอั่งเปา (Gift Voucher) ของ TrueMoney Wallet โดยอัตโนมัติ ออกแบบมาให้มีความทนทานและปลอดภัยสูงสุด พร้อมระบบหลบเลี่ยง Cloudflare TLS Fingerprint โดยใช้ `curl` เป็นค่าเริ่มต้น และรองรับการดักจับข้อผิดพลาดระดับ Enterprise-grade สำหรับ TypeScript & Node.js**
+> **เครื่องมือและไลบรารีภาษา JavaScript/TypeScript คุณภาพสูงสำหรับกดรับซองอั่งเปา (Gift Voucher) ของ TrueMoney Wallet โดยอัตโนมัติ ออกแบบมาให้มีความทนทานและปลอดภัยระดับ Enterprise พร้อมระบบหลบเลี่ยง Cloudflare TLS Fingerprint โดยใช้ Native `curl` เป็นค่าเริ่มต้น และรองรับการดักจับข้อผิดพลาดอย่างละเอียด ปราศจาก Runtime Dependencies ภายนอก**
 >
-> 🔗 **สมัครใช้งานและเป็นเจ้าของแพ็กเกจได้ที่:** [NPM Registry Official Website](https://www.npmjs.com/package/@riiixch/tmw-voucher)
+> 🔗 **ดูข้อมูลแพ็กเกจบน NPM Registry:** [@riiixch/tmw-voucher](https://www.npmjs.com/package/@riiixch/tmw-voucher)
 
 ---
 
 ## 💡 แก้ไขปัญหาอะไร? (What Problem Does This Solve?)
 
-การเขียนโค้ดยิงกดรับซองอั่งเปาทรูมันนี่แบบเดิมๆ มักมีข้อจำกัดที่ทำให้นักพัฒนาติดขัดและบอทแครชอยู่ตลอดเวลา SDK ตัวนี้ได้รับการขัดเกลาและขจัดจุดอ่อนทั้งหมดเรียบร้อยแล้ว:
+การเขียนโค้ดยิงกดรับซองอั่งเปาทรูมันนี่แบบดั้งเดิมมักพบปัญหาที่ทำให้บอทหรือเซิร์ฟเวอร์แครชบ่อยครั้ง SDK ตัวนี้ได้รับการออกแบบเพื่อแก้ปัญหาเชิงลึกทั้งหมด:
 
 ### 1️⃣ การบล็อก 403 Forbidden จาก Cloudflare TLS Fingerprint
-- **ปัญหา**: TrueMoney วางหน้าแคมเปญแจกซองอั่งเปาไว้หลังระบบป้องกัน Cloudflare ทำให้การส่ง HTTPS Request ผ่านไคลเอนต์ทั่วไปใน Node.js (เช่น `axios` หรือ `fetch`) จะถูกตรวจจับลายนิ้วมือ TLS (TLS Fingerprint) และส่งผลลัพธ์ปฏิเสธกลับมาเป็น 403 Forbidden เสมอ
-- **วิธีแก้**: SDK นี้แก้ปัญหาโดยใช้โมดูล **Schannel / curl native bridge** เป็นตัวส่งสัญญาณ HTTP เริ่มต้น ยิงข้อมูลโดยตรงผ่านระบบปฏิบัติการ ทำให้ Cloudflare ตรวจจับเป็นเบราว์เซอร์ปกติ บายพาสการบล็อกได้ 100%
+- **ปัญหา**: TrueMoney วางหน้าแคมเปญแจกซองอั่งเปาไว้หลัง Cloudflare Bot Management ส่งผลให้ HTTP Client ใน Node.js ทั่วไป (เช่น `axios` หรือ `fetch`) ถูกตรวจจับ TLS Fingerprint และถูกปฏิเสธเป็น 403 Forbidden เสมอ
+- **วิธีแก้**: SDK เชื่อมต่อคำขอผ่าน **Native `curl` Bridge** ของระบบปฏิบัติการโดยตรง ทำให้ Cloudflare จัดประเภทเป็นไคลเอนต์ปกติ จึงสามารถส่งคำขอได้อย่างราบรื่น 100%
 
-### 2️⃣ ปัญหาเบอร์โทรศัพท์ขาเข้าที่ผิดรูปแบบ (Input Validation Errors)
-- **ปัญหา**: เบอร์โทรศัพท์ของผู้รับเงินมักติดขีดแดช (`-`), ช่องว่าง, หรือส่งมาในรูปแบบรหัสสากล (เช่น `+66812345678` หรือ `66812345678`) ซึ่งหากส่งไปแบบดิบจะถูก TrueMoney ปฏิเสธ และหากปล่อยให้เกิดความผิดพลาดตอนรันไทม์จะเสียเวลาดีบั๊ก
-- **วิธีแก้**: ระบบติดตั้งฟีเจอร์ **Early Constructor Validation & Normalization** ช่วยสแกนและตรวจสอบรูปแบบเบอร์ทันทีตั้งแต่ขั้นตอนสร้าง Instance (`new TmwVoucher`) พร้อมทำความสะอาดล้างอักขระพิเศษและแปลงรหัสสากล `+66` ให้เป็น `0` นำหน้าโดยอัตโนมัติแบบ DRY (เช่น `+66 81-234-5678` -> `0812345678`) หากไม่ถูกต้องจะโยน `TmwValidationError` ทันทีเพื่อปกป้องการแครชระหว่างรันไทม์
+### 2️⃣ ปัญหาเบอร์โทรศัพท์ขาเข้าที่ผิดรูปแบบ (Input Validation & Normalization)
+- **ปัญหา**: เบอร์โทรศัพท์ของผู้รับเงินมักติดขีดแดช (`-`), ช่องว่าง, หรือส่งมาในรูปแบบรหัสโทรศัพท์ระหว่างประเทศ (เช่น `+66812345678` หรือ `66812345678`) หากส่งข้อมูลดิบจะถูก TrueMoney ปฏิเสธ
+- **วิธีแก้**: มีระบบ **Early Constructor Validation & Normalization** สแกนและตรวจสอบรูปแบบเบอร์ทันทีตั้งแต่ขั้นตอนสร้าง Instance (`new TmwVoucher`) ล้างอักขระพิเศษ และแปลงรหัสสากล `+66` / `66` เป็น `0` นำหน้าอัตโนมัติ (เช่น `+66 81-234-5678` ➔ `0812345678`) หากไม่ถูกต้องจะโยน `TmwValidationError` ทันทีเพื่อป้องกัน Runtime Crash
 
-### 3️⃣ ความไม่เสถียรของ JSON Parser และข้อความแอปแครช (Parser Resilience)
-- **ปัญหา**: เมื่อระบบของทรูมันนี่ขัดข้อง, เซิร์ฟเวอร์ปิดปรับปรุง, หรือเกิดเน็ตเวิร์กแล็ก การทำ `JSON.parse()` แบบดิบจากข้อมูลที่ตอบกลับมักทำให้แอปพลิเคชันหรือบอทหลักแครชลงมาดื้อๆ
-- **วิธีแก้**: ระบบครอบคลุมสถาปัตยกรรม **Multi-stage try-catch** อย่างหนาแน่นในทุกข้อต่อ:
-  - ทำการล้าง whitespace (trim) ผลตอบกลับก่อนพาร์ส
-  - หากแปลง JSON ไม่สำเร็จ จะสกัดข้อความ HTML ดิบ 100 ตัวแรกส่งเป็นรายละเอียดข้อผิดพลาด
-  - ดักตรวจสถานะ `status.code` และแปลงยอดเงินจากหน่วยสตางค์เป็นบาทอย่างแม่นยำ ป้องกันปัญหา `NaN` แบบถาวร
+### 3️⃣ ความปลอดภัยและการป้องกัน SSRF (Security Hardening)
+- **ปัญหา**: การใช้กระบวนการภายนอกยิงคำขอ HTTP เสี่ยงต่อการโจมตีประเภท Protocol Downgrade หรือ Server-Side Request Forgery (SSRF) เช่น `file://` หรือ `gopher://`
+- **วิธีแก้**: ติดตั้งการจำกัดโปรโตคอลอย่างเข้มงวดด้วย `--proto =http,https` ของ `curl` บังคับให้รับส่งข้อมูลผ่าน HTTP/HTTPS เท่านั้น พร้อมตั้ง `--connect-timeout 10` เพื่อป้องกันการค้างสะสมของการเชื่อมต่อเครือข่าย
 
-### 4️⃣ รูปแบบ URL ซองที่หลากหลาย (Multi-stage URL/Code Parser)
-- **ปัญหา**: ผู้ใช้ส่งลิงก์ซองเข้ามาหลากแบบ บางคนส่งเฉพาะรหัสดิบ บางคนมีเศษเครื่องหมายแฮชหรือสแลชพ่วงมา (เช่น `5a1b2...#hash`) หรือลิงก์ไม่มีโปรโตคอล
-- **วิธีแก้**: ติดตั้ง **Multi-stage parsing** ไล่เรียงตรวจสอบจาก API URL parameters -> Regex คัดกรอง -> และคัดเลือกกลุ่มอักขระ Alphanumeric ขนาด 10-48 ตัวอักษรกลุ่มแรกโดยอัตโนมัติ ดึงโค้ดออกมาได้อย่างไร้รอยต่อ
+### 4️⃣ ความเร็วสูงสุดในการรับซอง (Flash Voucher Claiming)
+- **ปัญหา**: โดยปกติ SDK จะต้องส่งคำขอ 2 ครั้ง (ตรวจสอบ `/configuration` ก่อน แล้วจึงยิง `/redeem`) ทำให้เกิด Latency สองเท่าตัว ซึ่งอาจช้าเกินไปในสถานการณ์แจกซองด่วนที่มีการแย่งกดรับเงิน
+- **วิธีแก้**: รองรับอ็อปชัน `skipMaintenanceCheck: true` เพื่อข้ามขั้นตอนตรวจเช็กคอนฟิกและยิงตรงเข้า API เคลมซองใน 1 Network Roundtrip ช่วยลดเวลาตอบสนองลงถึง ~50%
 
-### 5️⃣ ความเปราะบางของระบบเครือข่ายและการเชื่อมต่อสัญญาณสะดุด (Network Resilience)
-- **ปัญหา**: ในการเคลมซองอั่งเปาในระบบโปรดักชัน บางครั้งเครือข่ายอาจมีความล่าช้า สัญญาณหลุด หรือ TrueMoney API โหลดหนักและเกิดสัญญาณสะดุดเป็นครั้งคราว ส่งผลให้คำขอขาดตอน (Transient Errors)
-- **วิธีแก้**: ติดตั้งระบบ **Automatic Retry & Exponential Backoff** แบบ Native โดยไม่ต้องมี Dependencies ภายนอก ระบบจะทำการลองใหม่อัตโนมัติในกรณีเน็ตเวิร์กขัดข้องหรือรัน curl ล้มเหลว พร้อมเพิ่มความหน่วงเวลาขึ้นเรื่อยๆ ทวีคูณแบบทวีคูณเพื่อความนุ่มนวลและป้องกันการยิงระเบิดเซิร์ฟเวอร์ (เช่น รอ 1s -> 2s -> 4s ก่อนยอมแพ้)
+### 5️⃣ ความเปราะบางของเครือข่าย (Network Resilience & Exponential Backoff)
+- **ปัญหา**: ในระบบโปรดักชัน บางครั้งเครือข่ายอาจมีความล่าช้า สัญญาณสะดุด หรือเซิร์ฟเวอร์ปลายทางมีภาระงานสูงชั่วคราว
+- **วิธีแก้**: มีระบบ **Automatic Retry & Exponential Backoff** แบบ Native โดยไม่ต้องพึ่งไลบรารีภายนอก เมื่อการเชื่อมต่อล้มเหลว ระบบจะรอคอยและลองใหม่อัตโนมัติด้วยช่วงเวลาที่ทวีคูณ (เช่น 1s ➔ 2s ➔ 4s)
 
 ---
 
 ## 🌟 จุดเด่นของแพ็กเกจ (Key Features)
 
-- **100% TypeScript & Strict Type Safety**: พัฒนาด้วย TypeScript ทุกบรรทัด มีการกู้คืน Prototype chain สำหรับ Custom Errors และ **ไม่มีการใช้ `any` เด็ดขาด** 🛡
-- **Zero Core Dependencies**: ไร้แพ็กเกจภายนอกในระบบแกนหลัก (อาศัย Native OS `curl` และ Node built-ins) ทำให้บิลแพ็กเกจมีขนาดเล็ก ปราศจากช่องโหว่ความมั่นคงปลอดภัย
-- **Dual Module Build (ESM & CJS)**: บิวด์สนับสนุนทั้ง `import` และ `require` ควบคู่กับไฟล์ประเภทข้อมูล `.d.ts` / `.d.cts` เต็มรูปแบบ
-- **Granular try-catch protection**: ดักจับและคัดแยกคลาสข้อยกเว้นออกมาชัดเจน เช่น `TmwValidationError`, `TmwInvalidUrlError`, `TmwMaintenanceError`, และ `TmwNetworkError`
+- **100% TypeScript & Strict Type Safety**: พัฒนาบน TypeScript 7.0+ พร้อมกำหนด Type ชัดเจน ไม่มีการใช้ `any` และมี Prototype Chain Recovery สำหรับ Error classes ครบถ้วน
+- **Zero Runtime Dependencies**: ไม่พึ่งพาแพ็กเกจภายนอกในระบบรันไทม์ (Zero Dependencies) ปลอดภัย น้ำหนักเบา และลดความเสี่ยงด้าน Supply Chain
+- **Dual Module Build (ESM & CJS)**: รองรับทั้ง ECMAScript Modules (`import`) และ CommonJS (`require`) พร้อม `.d.ts` และ `.d.cts` เต็มรูปแบบ
+- **Enterprise Security**: ป้องกัน SSRF ด้วย `--proto =http,https` และควบคุม Timeout ในระดับเน็ตเวิร์ก
+- **Granular Exception Handling**: แยกประเภทคลาสข้อผิดพลาดอย่างชัดเจน (`TmwValidationError`, `TmwInvalidUrlError`, `TmwMaintenanceError`, `TmwNetworkError`) สะดวกต่อการเขียน Logic ดักจับในระบบจริง
 
 ---
 
-## 📊 ขั้นตอนการทำงานของระบบ (System Architecture & Flows)
-
-แผนภาพแสดงขั้นตอนการทำงานและการส่งสัญญาณร้องขอเพื่อเคลมซองอั่งเปาระหว่างระบบของคุณและ TrueMoney Wallet API:
+## 📊 ลำดับขั้นตอนการทำงาน (System Architecture & Sequence Flow)
 
 ```mermaid
 sequenceDiagram
     autonumber
     actor App as แอปพลิเคชัน / บอทของคุณ
     participant SDK as SDK (@riiixch/tmw-voucher)
-    participant OS as curl / curl.exe (ระบบปฏิบัติการ)
+    participant OS as curl (OS Native Bridge)
     participant API as TrueMoney API Server
 
     App->>SDK: 1. เรียกใช้ client.redeem(url, mobile)
-    Note over SDK: ตรวจสอบและแปลงเบอร์โทรศัพท์ (+66 -> 0) <br/>และแกะรหัสซอง (Multi-stage Parser)
-    SDK->>SDK: 2. เรียกใช้ checkMaintenance()
-    SDK->>OS: สั่งรันคำสั่ง curl ไปที่ /configuration
-    OS->>API: GET /campaign/vouchers/configuration
-    API-->>OS: คืนค่า JSON คอนฟิก
-    OS-->>SDK: ส่งกลับผลลัพธ์ดิบ
-    Note over SDK: ตรวจสอบและผ่านขั้นตอนปิดปรับปรุง
-    SDK->>OS: 3. สั่งรันคำสั่ง curl สำหรับแลกรับเงิน
+    Note over SDK: Validate & Normalize เบอร์โทร (+66 -> 0)<br/>แกะรหัสซองด้วย Multi-stage Parser
+
+    alt ตรวจสอบสถานะระบบ (skipMaintenanceCheck: false)
+        SDK->>OS: สั่ง curl GET /configuration
+        OS->>API: GET /campaign/vouchers/configuration
+        API-->>OS: คืนค่า JSON คอนฟิก
+        OS-->>SDK: ส่งกลับผลลัพธ์
+        Note over SDK: ตรวจสอบสถานะปิดปรับปรุง
+    else ข้ามการตรวจสอบเพื่อความเร็วสูงสุด (skipMaintenanceCheck: true)
+        Note over SDK: ⚡ ยิงตรงไปยังขั้นตอนเคลมทันที (ประหยัดเวลา ~50%)
+    end
+
+    SDK->>OS: 2. สั่ง curl POST /redeem (จำกัดเฉพาะ http,https)
     OS->>API: POST /campaign/vouchers/{code}/redeem
-    API-->>OS: คืนค่าผลการแลกรับเงิน (SUCCESS / โค้ดผิดพลาด)
-    OS-->>SDK: ส่งกลับผลลัพธ์ดิบ (stdout / stderr)
-    Note over SDK: ประมวลผลและแปลงหน่วยสตางค์เป็นบาทอย่างปลอดภัย <br/>(ป้องกัน NaN / Empty Response)
-    SDK-->>App: 4. คืนค่าเป็น RedeemResult (success, amountBaht, amountSatang)
+    API-->>OS: ส่งผลลัพธ์การเคลม (SUCCESS / รหัสผิดพลาด)
+    OS-->>SDK: ส่งกลับผลลัพธ์ดิบ (stdout)
+    Note over SDK: ตรวจสอบและแปลงหน่วยสตางค์เป็นบาทอย่างแม่นยำ
+    SDK-->>App: 3. ส่งคืน RedeemResult (success, amountBaht, amountSatang)
 ```
 
 ---
 
-## 📦 การติดตั้ง (Installation)
+## 📦 การติดตั้งและข้อกำหนดของระบบ (Installation & Prerequisites)
 
+### ข้อกำหนดของระบบ (Prerequisites)
+- **Node.js**: เวอร์ชั่น `>= 20.0.0`
+- **เครื่องมือ `curl`**: ต้องมีคำสั่ง `curl` (หรือ `curl.exe` บน Windows) อยู่ใน System `PATH` เพื่อใช้ในการส่งคำขอบายพาส Cloudflare (Windows 10/11, macOS, และ Linux ส่วนใหญ่จะมีติดตั้งมาให้เป็นค่าเริ่มต้นแล้ว)
+
+### คำสั่งติดตั้งผ่าน NPM
 ```bash
 npm install @riiixch/tmw-voucher
 ```
 
-> [!WARNING]  
-> **ข้อกำหนดเบื้องต้นของระบบปฏิบัติการ (Prerequisite):**
-> สภาพแวดล้อมระบบคลาวด์หรือเซิร์ฟเวอร์ของคุณจำเป็นต้องมีเครื่องมือ `curl` (หรือ `curl.exe` บนระบบปฏิบัติการ Windows) ติดตั้งอยู่ในระดับ PATH เพื่อใช้ในการส่งสัญญาณคำขอหลบเลี่ยง Cloudflare TLS Block (Windows 10/11 และระบบปฏิบัติการ Linux ตระกูลหลักส่วนใหญ่จะติดตั้งมาให้เป็นดีฟอลต์เรียบร้อยแล้ว)
-
 ---
 
-## 🚀 คู่มือการใช้งานทั่วไป (Basic Usage)
+## 🚀 คู่มือการใช้งาน (Usage Guide)
 
-คุณสามารถเลือกใช้งานได้สองรูปแบบตามความต้องการของสถาปัตยกรรมระบบ:
-
-### 1️⃣ วิธีเรียกใช้งานแบบ Class (แนะนำสำหรับการจัดการในภาพรวม)
+### 1️⃣ การใช้งานผ่าน Class (แนะนำสำหรับระบบทั่วไป)
 
 ```typescript
 import { TmwVoucher } from '@riiixch/tmw-voucher';
 
-// 1. กำหนดอินสแตนซ์พร้อมเบอร์โทร, เวลาหมดอายุ และระบบยิงซ้ำอัตโนมัติ (Retry & Backoff)
+// 1. สร้างอินสแตนซ์พร้อมระบุการตั้งค่า
 const redeemer = new TmwVoucher({
-  mobile: '081-234-5678', // ระบบจะตรวจเช็คความถูกต้องและ Normalize ทันทีใน Constructor
-  timeout: 15000,         // หมดเวลารอคอย 15 วินาที
+  mobile: '+66 81-234-5678', // ระบบจะแปลงเป็น 0812345678 ให้โดยอัตโนมัติ
+  timeout: 15000,            // หมดเวลารอคอย 15 วินาที
   retryOptions: {
-    retries: 3,           // หากเกิดปัญหาการเชื่อมต่อเครือข่าย จะพยายามกดยิงซ้ำสูงสุด 3 ครั้ง
-    minTimeout: 1000,     // รอบแรกหน่วงเวลารอคอย 1 วินาทีก่อนลองใหม่
-    factor: 2             // ทวีคูณเวลารอคอยเป็น 2 เท่าในรอบถัดไป (1s -> 2s -> 4s)
+    retries: 3,              // พยายามยิงซ้ำสูงสุด 3 ครั้งเมื่อเกิดข้อผิดพลาดทางเครือข่าย
+    minTimeout: 1000,        // เวลารอคอยเริ่มต้น 1 วินาที
+    factor: 2                // ทวีคูณเวลาเป็น 2 เท่าในแต่ละรอบ (1s -> 2s -> 4s)
   }
 });
 
-async function run() {
+async function main() {
   try {
     const voucherUrl = 'https://gift.truemoney.com/campaign/?v=5a1b2c3d4e5f6g7h8i9j0k';
-    
-    console.log('กำลังเคลมและกดรับซองอั่งเปา...');
     const result = await redeemer.redeem(voucherUrl);
 
     if (result.success) {
       console.log(`🎉 แลกรับซองสำเร็จ!`);
-      console.log(`- ได้รับเงินโอน: ${result.amountBaht} บาท`);
-      console.log(`- หน่วยจำนวนสตางค์: ${result.amountSatang} สตางค์`);
-      console.log(`- รายละเอียด API: ${result.message}`);
+      console.log(`- ได้รับเงิน: ${result.amountBaht} บาท (${result.amountSatang} สตางค์)`);
+      console.log(`- ข้อความ: ${result.message}`);
     } else {
-      console.error(`❌ รับเงินไม่สำเร็จ: [${result.code}] ${result.message}`);
+      console.error(`❌ แลกรับซองไม่สำเร็จ: [${result.code}] ${result.message}`);
     }
   } catch (error) {
-    console.error('เกิดข้อผิดพลาดในการประมวลผลคำขอ:', error);
+    console.error('เกิดข้อผิดพลาดในการประมวลผล:', error);
   }
 }
 
-run();
+main();
 ```
 
-### 2️⃣ วิธีเรียกใช้งานแบบฟังก์ชันด่วน (Functional convenient wrapper)
+---
 
-หากไม่ต้องการบันทึกสถานะ Instance หรือปรับแต่งค่าเชิงลึก สามารถเรียกใช้ฟังก์ชันด่วน `redeemVoucher` ได้ทันที:
+### 2️⃣ การใช้งานโหมดความเร็วสูง (High-Speed Flash Claiming)
+
+หากต้องการความเร็วสูงสุด เช่น ในการแข่งขันกดรับซองอั่งเปา สามารถเปิดใช้งาน `skipMaintenanceCheck: true` เพื่อลดรอบการยิง HTTP เหลือเพียงครั้งเดียว:
+
+```typescript
+import { TmwVoucher } from '@riiixch/tmw-voucher';
+
+const flashRedeemer = new TmwVoucher({
+  mobile: '0812345678',
+  skipMaintenanceCheck: true // ⚡ ข้ามการตรวจสอบสถานะปิดปรับปรุง ยิงตรงเพื่อความเร็วสูงสุด
+});
+
+async function claimFast() {
+  const result = await flashRedeemer.redeem('https://gift.truemoney.com/campaign/?v=5a1b2c3d4e5f6g7h8i9j0k');
+  console.log(result.success ? `ได้รับเงิน: ${result.amountBaht} บาท` : `ไม่สำเร็จ: ${result.message}`);
+}
+
+claimFast();
+```
+
+---
+
+### 3️⃣ การเรียกใช้แบบฟังก์ชันด่วน (Functional Wrapper)
+
+หากต้องการความสะดวกและรวดเร็วโดยไม่ต้องสร้าง Instance สามารถใช้ฟังก์ชัน `redeemVoucher` ได้ทันที:
 
 ```typescript
 import { redeemVoucher } from '@riiixch/tmw-voucher';
 
 async function quickClaim() {
-  // บังคับส่งเบอร์โทรศัพท์ 10 หลัก (ฟอร์แมตใดก็ได้) และรหัสซอง/ลิงก์ซอง
+  // รองรับการส่งลิงก์ซองแบบดิบ หรือส่งเฉพาะรหัสซอง
   const result = await redeemVoucher(
-    '+66 81-234-5678', // รองรับเบอร์ฟอร์แมตสากล
-    'gift.truemoney.com/campaign/?v=5a1b2c3d4e5f6g7h8i9j0k#hash' // รองรับ URL ที่มีเครื่องหมายแฮชติดมา
+    '0812345678',
+    'https://gift.truemoney.com/campaign/?v=5a1b2c3d4e5f6g7h8i9j0k',
+    { skipMaintenanceCheck: true } // สามารถส่ง Options เสริมได้
   );
 
   if (result.success) {
-    console.log(`ยอดเงินเข้าบัญชีเรียบร้อย: ${result.amountBaht} บาท`);
+    console.log(`ยอดเงินโอนเข้ากระเป๋า: ${result.amountBaht} บาท`);
   } else {
-    console.log(`เกิดความผิดพลาดจากระบบ: ${result.message}`);
+    console.log(`เกิดความผิดพลาด: ${result.message}`);
   }
 }
 
@@ -162,39 +186,39 @@ quickClaim();
 
 ---
 
-## 🛡️ การควบคุมข้อผิดพลาดอย่างมืออาชีพ (Granular Error Handling)
+## 🛡️ การจัดการข้อผิดพลาด (Granular Error Handling)
 
-SDK นี้โยนข้อผิดพลาดที่มีคลาสระบุตัวตนชัดเจน ทำให้ดักครอบ `try-catch` และควบคุมระบบหลักบอทหรือเซิร์ฟเวอร์หลังบ้านไม่ให้หยุดทำงานได้อย่างง่ายดาย:
+SDK นี้จำแนกคลาสข้อยกเว้นออกเป็นหมวดหมู่อย่างชัดเจน ทำให้สามารถเขียนเงื่อนไขดักจับเฉพาะกรณีได้อย่างแม่นยำ:
 
 ```typescript
-import { 
-  TmwVoucher, 
+import {
+  TmwVoucher,
   TmwValidationError,
-  TmwInvalidUrlError, 
-  TmwMaintenanceError, 
+  TmwInvalidUrlError,
+  TmwMaintenanceError,
   TmwNetworkError,
   TmwVoucherError
 } from '@riiixch/tmw-voucher';
 
 const redeemer = new TmwVoucher({ mobile: '0812345678' });
 
-async function claimSecurely() {
+async function safeClaim(voucherUrl: string) {
   try {
-    const result = await redeemer.redeem('https://gift.truemoney.com/campaign/?v=invalid_hash');
-    // ... จัดการผลลัพธ์
+    const result = await redeemer.redeem(voucherUrl);
+    // จัดการผลลัพธ์ปกติ...
   } catch (error) {
     if (error instanceof TmwValidationError) {
-      console.error('❌ ข้อมูลเบอร์โทรศัพท์ที่นำส่งไม่ถูกต้องหรือว่างเปล่า:', error.message);
+      console.error('❌ เบอร์โทรศัพท์ไม่ถูกต้อง:', error.message);
     } else if (error instanceof TmwInvalidUrlError) {
-      console.error('❌ ลิงก์ซองหรือรหัสที่กรอกเข้ามาไม่ใช่ซองอั่งเปาทรูมันนี่ที่ถูกต้อง:', error.message);
+      console.error('❌ ลิงก์ซองหรือรหัสไม่ถูกต้อง:', error.message);
     } else if (error instanceof TmwMaintenanceError) {
-      console.error('⚠️ ระบบ API ซองอั่งเปาของทรูมันนี่กำลังปิดปรับปรุงชั่วคราว:', error.message);
+      console.error('⚠️ ระบบ TrueMoney กำลังปิดปรับปรุงชั่วคราว:', error.message);
     } else if (error instanceof TmwNetworkError) {
-      console.error('🌐 เกิดปัญหาการเชื่อมต่อเครือข่าย หรือกระบวนการรัน curl ขัดข้อง:', error.message);
+      console.error('🌐 การเชื่อมต่อเครือข่ายขัดข้อง หรือ cURL ล้มเหลว:', error.message);
     } else if (error instanceof TmwVoucherError) {
-      console.error('💥 ข้อผิดพลาดทั่วไปของห้องสมุด TMW:', error.message);
+      console.error('💥 ข้อผิดพลาดทั่วไปของไลบรารี:', error.message);
     } else {
-      console.error('❓ เกิดข้อผิดพลาดอื่นที่อยู่นอกเหนือระบบควบคุม:', error);
+      console.error('❓ ข้อผิดพลาดที่ไม่คาดคิด:', error);
     }
   }
 }
@@ -202,101 +226,114 @@ async function claimSecurely() {
 
 ---
 
-## ⚙️ การใช้งาน Custom Requester (การปรับแต่งขั้นสูง)
+## ⚙️ การใช้งาน Custom Requester และ Proxy
 
-หากสภาพแวดล้อมเซิร์ฟเวอร์ของคุณไม่รองรับการเรียกใช้ฟังก์ชันระดับปฏิบัติการของระบบ (เช่น Cloudflare Workers หรือสภาพแวดล้อม Serverless อื่นที่ห้ามใช้ `execFile`) คุณสามารถเขียนฟังก์ชันตัวยิง HTTP ขึ้นมาเองเพื่อใช้แทนที่ `curl` ได้ง่ายๆ:
+หากต้องการทำงานบนสภาพแวดล้อมที่จำกัด (เช่น Cloudflare Workers หรือ Serverless ที่ไม่อนุญาตให้รัน `child_process`) หรือต้องการสวม Proxy / Custom HTTP Client สามารถส่งฟังก์ชัน `requester` ของคุณเองได้ หรือนำ `defaultCurlRequester` ไป Wrap เพื่อทำ Custom Logging ได้ตามต้องการ:
 
 ```typescript
-import { TmwVoucher, RequesterFunction } from '@riiixch/tmw-voucher';
-import axios from 'axios';
+import { TmwVoucher, RequesterFunction, defaultCurlRequester } from '@riiixch/tmw-voucher';
 
-// 1. เขียนฟังก์ชัน HTTP Requester ของคุณเอง
-const customAxiosRequester: RequesterFunction = async (url, options = {}) => {
+// ตัวอย่างการ Wrap defaultCurlRequester เพื่อบันทึก Access Log
+const loggingRequester: RequesterFunction = async (url, options) => {
+  const startTime = Date.now();
+  console.log(`[REQ] ${options?.method || 'GET'} -> ${url}`);
   try {
-    const response = await axios({
-      url,
-      method: options.method || 'GET',
-      data: options.body,
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36...',
-        ...options.headers
-      },
-      timeout: options.timeout
-    });
-    return response.data;
-  } catch (error: any) {
-    // ส่งผ่านข้อมูลการเคลมผิดพลาดที่ TrueMoney ตอบกลับมาใน response
-    if (error.response && error.response.data) {
-      return error.response.data;
-    }
-    throw new Error(error.message);
+    const response = await defaultCurlRequester(url, options);
+    console.log(`[RES] สำเร็จในเวลา ${Date.now() - startTime}ms`);
+    return response;
+  } catch (err: any) {
+    console.error(`[ERR] ล้มเหลวในเวลา ${Date.now() - startTime}ms:`, err.message);
+    throw err;
   }
 };
 
-// 2. นำไปฉีดสวมสิทธิ์ใน Constructor เพื่อให้บอร์ดข้ามการเรียกใช้ curl
 const client = new TmwVoucher({
   mobile: '0812345678',
-  requester: customAxiosRequester // บังคับสวม Requester ตัวโปรดของคุณ
+  requester: loggingRequester
 });
 ```
 
 ---
 
-## 📘 ข้อมูลอ้างอิง API และประเภทข้อมูล (API & Type References)
+## 📘 ข้อมูลอ้างอิง API และ Type (API & Type References)
 
-### ⚙️ 1. รายละเอียดการตั้งค่าคอนฟิก (Configuration References)
+### ⚙️ 1. `TmwVoucherConfig`
 
 ```typescript
 const client = new TmwVoucher(config?: TmwVoucherConfig);
 ```
 
-| พารามิเตอร์ | ประเภทข้อมูล | จำเป็นต้องใส่ | ค่าเริ่มต้น | คำอธิบาย |
-| :--- | :--- | :---: | :---: | :--- |
-| `mobile` | `string` | No | - | เบอร์โทรศัพท์ 10 หลักสำหรับรับเงิน (**รองรับ Early Validation และตรวจสอบเบอร์ล่วงหน้าทันทีใน Constructor**) |
-| `timeout` | `number` | No | `15000` | ระยะเวลาจำกัดการโอนถ่ายข้อมูลเครือข่ายสูงสุดในหน่วยมิลลิวินาที (15 วินาที) |
-| `requester` | `RequesterFunction` | No | `defaultCurlRequester` | ฟังก์ชันส่งคำขอข้อมูล HTTP (ฉีดเข้ามาแทนที่ได้เพื่อเปลี่ยนระบบข้าม curl) |
-| `retryOptions` | `RetryOptions` | No | - | อ็อปชันการพยายามส่งคำขอเครือข่ายใหม่อัตโนมัติเมื่อพบปัญหาสัญญาณขัดข้อง (Automatic Retry) |
-| `skipMaintenanceCheck` | `boolean` | No | `false` | ข้ามการยิงตรวจสอบ `/configuration` ก่อนเคลม เพื่อลด latency ลง ~50% สำหรับเคสที่ต้องการความเร็วสูงสุด |
-
----
-
-#### 🏷️ `RetryOptions` (ตัวเลือกการยิงซ้ำแบบทวีคูณ)
-
-| Property | Type | Required | Default | Description |
-| :--- | :--- | :---: | :---: | :--- |
-| `retries` | `number` | No | `0` | จำนวนครั้งสูงสุดที่จะหน่วงเวลาและยิงซ้ำเมื่อเชื่อมต่อล้มเหลว (หากเป็น `0` คือไม่ยิงซ้ำ) |
-| `minTimeout` | `number` | No | `1000` | หน่วงเวลาเตรียมการรอบแรกสุดก่อนกดยิงซ้ำรอบถัดไป (หน่วยมิลลิวินาที) |
-| `factor` | `number` | No | `2` | ตัวคูณทวีคูณหน่วงเวลาในรอบถัดไปแบบทวีคูณ Exponential Backoff (เช่น 1s -> 2s -> 4s) |
-
----
-
-### 📦 2. โครงสร้างประเภทข้อมูล (Data Interfaces Reference)
-
-#### 🏷️ `RedeemResult` (ผลลัพธ์ตอบกลับจากคำขอการเคลมซอง)
-
-ผลลัพธ์หลังจากทำการเรียกใช้งานคำสั่ง `redeem` หรือ `redeemVoucher` สำเร็จ:
-
-| Property | Type | Presence | Description |
+| พารามิเตอร์ | ชนิดข้อมูล | ค่าเริ่มต้น | คำอธิบาย |
 | :--- | :--- | :---: | :--- |
-| `success` | `boolean` | **Always** | บ่งชี้ว่าทำรายการกดรับยอดเงินเข้ากระเป๋าสำเร็จเสร็จสิ้นหรือไม่ |
-| `amountBaht` | `number` | Optional | **ยอดเงินรวมที่ได้รับจริงในหน่วยบาท** ทศนิยมสูงสุด 2 หลัก (ได้รับเฉพาะตอน `success: true`) |
-| `amountSatang` | `number` | Optional | ยอดเงินรวมที่ได้รับในหน่วยสตางค์ชนิดจำนวนเต็ม เช่น `1550` (ได้รับเฉพาะตอน `success: true`) |
-| `code` | `string` | Optional | รหัสสถานะผิดพลาดทางธุรกิจจาก API ทรูมันนี่ เช่น `VOUCHER_OUT_OF_STOCK` (ได้รับเฉพาะตอน `success: false`) |
-| `message` | `string` | **Always** | ข้อความอธิบายสถานะการทำรายการจากฝั่ง TrueMoney Wallet API |
+| `mobile` | `string` | - | เบอร์โทรศัพท์ 10 หลักของผู้รับเงิน (ทำการ Normalize และ Validate อัตโนมัติใน Constructor) |
+| `timeout` | `number` | `15000` | ระยะเวลารอคอยสูงสุดในหน่วยมิลลิวินาที (15 วินาที) |
+| `requester` | `RequesterFunction` | `defaultCurlRequester` | ฟังก์ชันส่งคำขอข้อมูล HTTP (สามารถแทนที่ด้วย Custom Requester ได้) |
+| `retryOptions` | `RetryOptions` | - | การตั้งค่าการพยายามส่งคำขอซ้ำเมื่อเกิดปัญหาเน็ตเวิร์ก (Automatic Retry) |
+| `skipMaintenanceCheck` | `boolean` | `false` | ข้ามการตรวจสอบ `/configuration` ก่อนเคลมซอง เพื่อลด Latency เหลือ 1 Roundtrip (~50% เร็วขึ้น) |
 
 ---
 
-### 📁 3. รายการคลาสข้อผิดพลาดเฉพาะตัว (Custom Exceptions Reference)
+### 🏷️ 2. `RetryOptions`
 
-คลาสตรวจสอบข้อยกเว้นภายในตัวไลบรารี ซึ่งสืบทอดมาจากคลาสแม่ **`TmwVoucherError`**:
+| พารามิเตอร์ | ชนิดข้อมูล | ค่าเริ่มต้น | คำอธิบาย |
+| :--- | :--- | :---: | :--- |
+| `retries` | `number` | `0` | จำนวนครั้งสูงสุดที่จะลองใหม่เมื่อเกิดความผิดพลาดจากการเชื่อมต่อ (`0` คือไม่ลองใหม่) |
+| `minTimeout` | `number` | `1000` | ระยะเวลาที่รอก่อนลองใหม่ในครั้งแรกสุด (หน่วยมิลลิวินาที) |
+| `factor` | `number` | `2` | ตัวคูณการหน่วงเวลาแบบ Exponential Backoff ในรอบถัดไป (เช่น 1s ➔ 2s ➔ 4s) |
 
-| คลาสข้อยกเว้น (Error Class) | คำอธิบายสาเหตุความขัดข้อง |
+---
+
+### 🏷️ 3. `RedeemResult`
+
+| ฟิลด์ | ชนิดข้อมูล | ปรากฏเมื่อ | คำอธิบาย |
+| :--- | :--- | :---: | :--- |
+| `success` | `boolean` | เสมอ | ระบุว่าทำรายการเคลมเงินสำเร็จหรือไม่ |
+| `amountBaht` | `number` | `success: true` | **ยอดเงินรวมที่ได้รับจริงในหน่วยบาท** (มีทศนิยมสูงสุด 2 ตำแหน่ง) |
+| `amountSatang` | `number` | `success: true` | ยอดเงินรวมที่ได้รับในหน่วยสตางค์ (จำนวนเต็ม เช่น `1550` = 15.50 บาท) |
+| `code` | `string` | `success: false` | รหัสสถานะผิดพลาดทางธุรกิจจาก TrueMoney API เช่น `VOUCHER_OUT_OF_STOCK` |
+| `message` | `string` | เสมอ | ข้อความอธิบายผลลัพธ์จาก TrueMoney Wallet API |
+
+---
+
+### 📁 4. คลาสข้อผิดพลาด (Custom Exceptions)
+
+ทุกคลาสสืบทอดมาจากคลาสแม่ **`TmwVoucherError`**:
+
+| คลาสข้อผิดพลาด | สาเหตุที่เกิดขึ้น |
 | :--- | :--- |
-| `TmwValidationError` | ข้อมูลนำเข้าไม่ถูกต้องตามเงื่อนไข (**ดักจับตั้งแต่การ new TmwVoucher** หรือระบุเบอร์ไม่ครบ 10 หลักถ้วนหลังทำความสะอาด) |
-| `TmwInvalidUrlError` | โครงสร้างลิงก์ซองอั่งเปาไม่สมบูรณ์ หรือไม่มีพารามิเตอร์รหัสซอง (v) แฝงอยู่เลย |
-| `TmwMaintenanceError` | ระบบ API แจกซองอั่งเปาของทรูมันนี่ กำลังหยุดการให้บริการชั่วคราวเพื่อซ่อมแซมระบบ |
-| `TmwRedeemError` | ข้อยกเว้นระดับการกดเคลมล้มเหลว (เก็บค่า code เฉพาะจุดเพิ่มเติมเพื่อวิเคราะห์) |
-| `TmwNetworkError` | ปัญหาการเชื่อมต่อขาดช่วง หรือพยายามส่งคำขอใหม่ครบโควตาตาม `retryOptions` แล้วยังขัดข้องอยู่ |
+| `TmwValidationError` | ข้อมูลนำเข้าไม่ถูกต้อง (เช่น เบอร์โทรศัพท์ไม่ใช่ 10 หลัก หรือระบุค่าว่าง) ดักตรวจตั้งแต่ Constructor |
+| `TmwInvalidUrlError` | รูปแบบลิงก์หรือรหัสซองอั่งเปาไม่ถูกต้อง หรือไม่พบรหัสซองที่ใช้งานได้ |
+| `TmwMaintenanceError` | ระบบ API แคมเปญแจกซองของ TrueMoney กำลังปิดปรับปรุงชั่วคราว |
+| `TmwNetworkError` | เกิดปัญหาการเชื่อมต่อ หรือคำสั่ง cURL ล้มเหลวหลังจากลองใหม่ครบตามโควตาแล้ว |
+| `TmwVoucherError` | คลาสข้อยกเว้นระดับรากฐานของไลบรารี ใช้สำหรับดักจับข้อผิดพลาดทั้งหมดของแพ็กเกจ |
+
+---
+
+### 🧩 5. ฟังก์ชันและยูทิลิตี้เสริมที่ Export ออกมา
+
+- **`redeemVoucher(mobileNumber, voucherUrlOrCode, options?)`**: ฟังก์ชันสำหรับเคลมซองโดยไม่ต้องสร้าง Class
+- **`extractVoucherCode(urlOrCode)`**: ยูทิลิตี้สกัดรหัสซองอั่งเปา 10-48 หลักจาก URL หรือสตริงใดๆ รองรับอักขระแปลกปลอมและ query parameters
+- **`defaultCurlRequester(url, options?)`**: ฟังก์ชันส่ง HTTP ผ่าน Native cURL Bridge เริ่มต้นของไลบรารี
+
+---
+
+## 🛠️ คำสั่งสำหรับนักพัฒนา (Development & Testing)
+
+หากต้องการร่วมพัฒนา ปรับแต่ง หรือทดสอบชุดคำสั่งภายในคลังโค้ดนี้:
+
+```bash
+# ตรวจสอบความถูกต้องของ Type ทั้งโปรเจกต์ (TypeScript 7.0+)
+npm run typecheck
+
+# รันชุดทดสอบทั้งหมดด้วย Vitest (22 unit tests)
+npm run test
+
+# รันชุดทดสอบแบบ Watch Mode ระหว่างพัฒนา
+npm run test:watch
+
+# คอมไพล์โปรเจกต์ (tsup Dual CJS/ESM + TypeScript type declarations)
+npm run build
+```
 
 ---
 
@@ -310,4 +347,4 @@ const client = new TmwVoucher(config?: TmwVoucherConfig);
 
 ## 📄 ใบอนุญาต (License)
 
-ชุดคำสั่งและไลบรารีนี้ถูกเผยแพร่อยู่ภายใต้ข้อตกลงใบอนุญาตแบบ **[ISC License](LICENSE)** - สงวนลิขสิทธิ์ลิขสิทธิ์โดย RIIIXCH © 2026
+แพ็กเกจนี้เผยแพร่ภายใต้ใบอนุญาตแบบ **[ISC License](LICENSE)** — สงวนลิขสิทธิ์ © 2026 RIIIXCH
